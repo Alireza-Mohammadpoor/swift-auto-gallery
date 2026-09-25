@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-swift-black text-swift-warm;
+  }
+  [dir="rtl"] body {
+    @apply font-fa;
+  }
+  [dir="ltr"] body {
+    @apply font-sans;
+  }
+  ::selection {
+    @apply bg-swift-gold/30 text-swift-warm;
+  }
+  :focus-visible {
+    outline: 2px solid #d4af37;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-swift {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-gold-gradient px-6 py-3 text-sm font-semibold text-swift-black transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-swift-gold/40 px-6 py-3 text-sm font-semibold text-swift-warm transition-colors duration-200 hover:border-swift-gold hover:bg-swift-gold/10;
+  }
+  .surface-card {
+    @apply rounded-lg border border-swift-border bg-swift-surface;
+  }
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-swift-gold;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
