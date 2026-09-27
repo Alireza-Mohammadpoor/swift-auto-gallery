@@ -17,8 +17,17 @@
 const WHATSAPP_CHAT_URL =
   "https://wa.me/message/JDOLWVB7CXI2H1";
 
-export function buildWhatsAppUrl(): string {
-  return WHATSAPP_CHAT_URL;
+// export function buildWhatsAppUrl(): string {
+//   return WHATSAPP_CHAT_URL;
+// }
+
+export function buildWhatsAppUrl(message?: string): string {
+  if (!message) {
+    return WHATSAPP_CHAT_URL;
+  }
+
+  const separator = WHATSAPP_CHAT_URL.includes("?") ? "&" : "?";
+  return `${WHATSAPP_CHAT_URL}${separator}text=${encodeURIComponent(message)}`;
 }
 
 export function buildPhoneUrl(): string {
