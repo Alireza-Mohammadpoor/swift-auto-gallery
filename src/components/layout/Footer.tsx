@@ -53,6 +53,12 @@ export function Footer() {
                 {BUSINESS_PHONE_DISPLAY}
               </a>
             </li>
+				 <li>
+              <a href={buildPhoneUrl()} className="flex items-center gap-2 hover:text-swift-gold">
+                <Phone size={16} className="text-swift-gold" />
+                +971507240242
+              </a>
+            </li>
             <li>
               <a
                 href={INSTAGRAM_URL}
