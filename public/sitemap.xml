@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Static base sitemap. Published vehicle detail pages should be appended here
-  by a build-time or scheduled script that queries Supabase for
-  `is_published = true` vehicles (see README > SEO for a suggested approach).
--->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://swiftautogallery.com/</loc>
@@ -21,6 +16,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://swiftautogallery.com/blog</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://swiftautogallery.com/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -29,5 +29,83 @@
     <loc>https://swiftautogallery.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/blog/azera</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/c945986d-ae3d-4aa1-8d93-021617823ba7</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/a02e3b30-3cc8-4ba5-bfd0-08bffbc03aef</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/c535100e-54c0-44c6-9e23-8b876a355c02</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/774cfdc5-b807-45c0-94b3-f13041dbc215</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/fe505c01-e0e3-4fca-bbb1-125d3a28d583</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/b190af1d-9da2-4819-8527-763abf1ffa0d</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/87002e35-38d4-4c3c-b499-e9309ec3f393</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/9629ecf0-c837-4dae-8785-d95f999e5896</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/0d883df8-1729-4e2c-aff6-eb896d6347ec</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/f0f58e42-0446-43ad-a8f4-2c35d0921918</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/c78d90da-da7c-4c49-8f9d-b8c775c17aad</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://swiftautogallery.com/vehicles/7ccf3bcb-0fe2-4c88-8dfa-11472cb041b0</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

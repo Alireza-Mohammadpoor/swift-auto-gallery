@@ -1,4 +1,4 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -44,6 +44,158 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+} */
+
+
+
+
+
+
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   Base styles
+======================================== */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-swift-black text-swift-warm;
+  }
+
+  [dir="rtl"] body {
+    @apply font-fa;
+  }
+
+  [dir="ltr"] body {
+    @apply font-sans;
+  }
+
+  ::selection {
+    @apply bg-swift-gold/30 text-swift-warm;
+  }
+
+  :focus-visible {
+    outline: 2px solid #d4af37;
+    outline-offset: 2px;
+  }
+}
+
+/* ========================================
+   Shared components
+======================================== */
+
+@layer components {
+  .container-swift {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-gold-gradient px-6 py-3 text-sm font-semibold text-swift-black transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-swift-gold/40 px-6 py-3 text-sm font-semibold text-swift-warm transition-colors duration-200 hover:border-swift-gold hover:bg-swift-gold/10;
+  }
+
+  .surface-card {
+    @apply rounded-lg border border-swift-border bg-swift-surface;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-swift-gold;
+  }
+}
+
+/* ========================================
+   Editorial typography
+   Used by ArticleContent and the CMS editor
+======================================== */
+
+.article-prose {
+  @apply text-base leading-8 text-swift-warm/90;
+}
+
+.article-prose > * + * {
+  @apply mt-5;
+}
+
+.article-prose h2 {
+  @apply mt-10 text-2xl font-bold text-swift-warm;
+}
+
+.article-prose h3 {
+  @apply mt-8 text-xl font-semibold text-swift-warm;
+}
+
+.article-prose h4 {
+  @apply mt-6 text-lg font-semibold text-swift-gold;
+}
+
+.article-prose ul {
+  @apply list-disc ps-6;
+}
+
+.article-prose ol {
+  @apply list-decimal ps-6;
+}
+
+.article-prose li > p {
+  @apply m-0;
+}
+
+.article-prose blockquote {
+  @apply border-s-4 border-swift-gold ps-4 italic text-swift-warm/80;
+}
+
+.article-prose hr {
+  @apply my-8 border-swift-border;
+}
+
+.article-prose figure {
+  @apply my-8;
+}
+
+.article-prose img {
+  @apply mx-auto h-auto max-w-full rounded-lg border border-swift-border;
+}
+
+.article-prose figcaption {
+  @apply mt-2 text-center text-sm text-swift-muted;
+}
+
+.article-prose a {
+  @apply text-swift-gold underline underline-offset-2;
+}
+
+.article-prose .ProseMirror {
+  @apply min-h-[320px] outline-none;
+}
+
+.article-prose .ProseMirror > * + * {
+  @apply mt-5;
+}
+
+/* ========================================
+   Accessibility: reduced motion
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

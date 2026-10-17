@@ -1182,6 +1182,741 @@
 
 
 
+// import { useEffect, useState, type FormEvent } from "react";
+// import { useNavigate, useParams } from "react-router-dom";
+// import { Star, Trash2, Upload, Loader2 } from "lucide-react";
+// import { useLanguage } from "@/i18n/LanguageContext";
+// import { useAdminVehicle } from "@/hooks/useVehicles";
+// import { supabase } from "@/lib/supabase/client";
+// import { vehicleFormSchema } from "@/schemas/vehicleSchema";
+// import type { VehicleImage } from "@/types/vehicle";
+// import type { Json } from "@/types/database";
+
+// const VEHICLE_BUCKET = "vehicle-images";
+
+// const emptyForm = {
+//   brand: "",
+//   model: "",
+//   trim: "",
+//   year: new Date().getFullYear(),
+//   price_aed: 0,
+//   mileage: "",
+//   engine_size: "",
+//   color: "",
+//   regional_specification: "",
+//   description_fa: "",
+//   is_available: true,
+//   is_featured: false,
+//   is_published: true,
+// };
+
+// type FormState = typeof emptyForm;
+
+// export function VehicleForm() {
+//   const { id } = useParams<{ id: string }>();
+//   const isEdit = !!id;
+//   const { t } = useLanguage();
+//   const navigate = useNavigate();
+
+//   const {
+//     data: existing,
+//     isLoading: loadingExisting,
+//   } = useAdminVehicle(id);
+
+//   const [form, setForm] = useState<FormState>(emptyForm);
+//   const [images, setImages] = useState<VehicleImage[]>([]);
+//   const [errors, setErrors] = useState<Record<string, string>>({});
+//   const [submitting, setSubmitting] = useState(false);
+//   const [uploading, setUploading] = useState(false);
+
+//   const [banner, setBanner] = useState<{
+//     type: "success" | "error";
+//     message: string;
+//   } | null>(null);
+
+//   useEffect(() => {
+//     if (existing) {
+//       setForm({
+//         brand: existing.brand,
+//         model: existing.model,
+//         trim: existing.trim ?? "",
+//         year: existing.year,
+//         price_aed: existing.price_aed,
+//         mileage: existing.mileage?.toString() ?? "",
+//         engine_size: existing.engine_size ?? "",
+//         color: existing.color ?? "",
+//         regional_specification:
+//           existing.regional_specification ?? "",
+//         description_fa: existing.description_fa ?? "",
+//         is_available: existing.is_available,
+//         is_featured: existing.is_featured,
+//         is_published: existing.is_published,
+//       });
+
+//       setImages(existing.images ?? []);
+//     }
+//   }, [existing]);
+
+//   const update = <K extends keyof FormState>(
+//     key: K,
+//     value: FormState[K]
+//   ) => {
+//     setForm((prev) => ({
+//       ...prev,
+//       [key]: value,
+//     }));
+//   };
+
+//   const handleImageUpload = async (
+//     files: FileList | null
+//   ) => {
+//     if (!files || files.length === 0) return;
+
+//     setUploading(true);
+//     setBanner(null);
+
+//     const uploaded: VehicleImage[] = [];
+
+//     for (const file of Array.from(files)) {
+//       if (!file.type.startsWith("image/")) {
+//         continue;
+//       }
+
+//       if (file.size > 8 * 1024 * 1024) {
+//         setBanner({
+//           type: "error",
+//           message: "Image size must be less than 8MB.",
+//         });
+//         continue;
+//       }
+
+//       const ext = file.name.split(".").pop();
+
+//       const path = `${crypto.randomUUID()}.${ext}`;
+
+//       const { error } = await supabase.storage
+//         .from(VEHICLE_BUCKET)
+//         .upload(path, file, {
+//           cacheControl: "3600",
+//           upsert: false,
+//         });
+
+//       if (error) {
+//         console.error("Image upload failed:", error);
+
+//         setBanner({
+//           type: "error",
+//           message: error.message,
+//         });
+
+//         continue;
+//       }
+
+//       const { data: publicUrl } = supabase.storage
+//         .from(VEHICLE_BUCKET)
+//         .getPublicUrl(path);
+
+//       uploaded.push({
+//         url: publicUrl.publicUrl,
+//         path,
+//         isPrimary: false,
+//         sortOrder:
+//           images.length + uploaded.length,
+//       });
+//     }
+
+//     setImages((prev) => {
+//       const next = [...prev, ...uploaded];
+
+//       if (
+//         !next.some((img) => img.isPrimary) &&
+//         next.length > 0
+//       ) {
+//         next[0].isPrimary = true;
+//       }
+
+//       return next;
+//     });
+
+//     setUploading(false);
+//   };
+
+//   const removeImage = async (path: string) => {
+//     const { error } = await supabase.storage
+//       .from(VEHICLE_BUCKET)
+//       .remove([path]);
+
+//     if (error) {
+//       console.error("Image removal failed:", error);
+
+//       setBanner({
+//         type: "error",
+//         message: error.message,
+//       });
+
+//       return;
+//     }
+
+//     setImages((prev) => {
+//       const next = prev.filter(
+//         (img) => img.path !== path
+//       );
+
+//       if (
+//         next.length > 0 &&
+//         !next.some((img) => img.isPrimary)
+//       ) {
+//         next[0].isPrimary = true;
+//       }
+
+//       return next;
+//     });
+//   };
+
+//   const setPrimary = (path: string) => {
+//     setImages((prev) =>
+//       prev.map((img) => ({
+//         ...img,
+//         isPrimary: img.path === path,
+//       }))
+//     );
+//   };
+
+//   const handleSubmit = async (e: FormEvent) => {
+//     e.preventDefault();
+//     setBanner(null);
+
+//     const parsed = vehicleFormSchema.safeParse({
+//       ...form,
+//       year: Number(form.year),
+//       price_aed: Number(form.price_aed),
+//       mileage:
+//         form.mileage === ""
+//           ? null
+//           : Number(form.mileage),
+//     });
+
+//     if (!parsed.success) {
+//       const fieldErrors: Record<string, string> = {};
+
+//       for (const issue of parsed.error.issues) {
+//         fieldErrors[String(issue.path[0])] =
+//           t.admin.requiredField;
+//       }
+
+//       setErrors(fieldErrors);
+//       return;
+//     }
+
+//     setErrors({});
+//     setSubmitting(true);
+
+//     const jsonImages: Json = images.map((image) => ({
+//       url: image.url,
+//       path: image.path,
+//       isPrimary: image.isPrimary,
+//       sortOrder: image.sortOrder,
+//     }));
+
+//     const payload = {
+//       ...parsed.data,
+
+//       trim: parsed.data.trim || null,
+
+//       engine_size:
+//         parsed.data.engine_size || null,
+
+//       color:
+//         parsed.data.color || null,
+
+//       regional_specification:
+//         parsed.data.regional_specification || null,
+
+//       description_fa:
+//         parsed.data.description_fa || null,
+
+//       images: jsonImages,
+
+//       // These fields are intentionally kept
+//       // out of the admin form but stored as null.
+//       fuel_type: null,
+//       transmission: null,
+//       engine: null,
+//       body_type: null,
+//       country: null,
+//       description_en: null,
+//     };
+
+//     const result = isEdit
+//       ? await supabase
+//           .from("vehicles")
+//           .update(payload)
+//           .eq("id", id)
+//       : await supabase
+//           .from("vehicles")
+//           .insert(payload);
+
+//     setSubmitting(false);
+
+//     if (result.error) {
+//       console.error(
+//         "Vehicle save failed:",
+//         result.error
+//       );
+
+//       setBanner({
+//         type: "error",
+//         message:
+//           result.error.message ||
+//           t.admin.saveError,
+//       });
+
+//       return;
+//     }
+
+//     setBanner({
+//       type: "success",
+//       message: t.admin.saveSuccess,
+//     });
+
+//     setTimeout(
+//       () => navigate("/admin/vehicles"),
+//       600
+//     );
+//   };
+
+//   if (isEdit && loadingExisting) {
+//     return (
+//       <div className="text-swift-muted">
+//         {t.common.loading}
+//       </div>
+//     );
+//   }
+
+//   const inputClass =
+//     "w-full rounded-md border border-swift-border bg-swift-black px-3 py-2.5 text-sm text-swift-warm focus:border-swift-gold focus:outline-none";
+
+//   const labelClass =
+//     "mb-1.5 block text-sm font-medium text-swift-warm/80";
+
+//   return (
+//     <div className="mx-auto max-w-4xl">
+//       <h1 className="mb-6 text-2xl font-bold text-swift-warm">
+//         {t.admin.formTitle}
+//       </h1>
+
+//       {banner && (
+//         <div
+//           role="status"
+//           className={`mb-4 rounded-md px-4 py-3 text-sm ${
+//             banner.type === "success"
+//               ? "bg-green-500/10 text-green-400"
+//               : "bg-red-500/10 text-red-400"
+//           }`}
+//         >
+//           {banner.message}
+//         </div>
+//       )}
+
+//       <form
+//         onSubmit={handleSubmit}
+//         className="space-y-8"
+//       >
+//         {/* =========================
+//             Images
+//         ========================== */}
+//         <section className="surface-card p-6">
+//           <h2 className="section-label mb-4">
+//             {t.admin.images}
+//           </h2>
+
+//           <div className="flex flex-wrap gap-3">
+//             {images.map((img) => (
+//               <div
+//                 key={img.path}
+//                 className="group relative h-24 w-32 overflow-hidden rounded-md border border-swift-border"
+//               >
+//                 <img
+//                   src={img.url}
+//                   alt=""
+//                   className="h-full w-full object-cover"
+//                 />
+
+//                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+//                   <button
+//                     type="button"
+//                     onClick={() =>
+//                       setPrimary(img.path)
+//                     }
+//                     className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] ${
+//                       img.isPrimary
+//                         ? "bg-swift-gold text-swift-black"
+//                         : "bg-white/10 text-white"
+//                     }`}
+//                   >
+//                     <Star
+//                       size={10}
+//                       fill={
+//                         img.isPrimary
+//                           ? "currentColor"
+//                           : "none"
+//                       }
+//                     />
+
+//                     {t.admin.setPrimary}
+//                   </button>
+
+//                   <button
+//                     type="button"
+//                     onClick={() =>
+//                       removeImage(img.path)
+//                     }
+//                     className="flex items-center gap-1 rounded bg-red-500/80 px-2 py-1 text-[10px] text-white"
+//                   >
+//                     <Trash2 size={10} />
+
+//                     {t.admin.removeImage}
+//                   </button>
+//                 </div>
+
+//                 {img.isPrimary && (
+//                   <span className="absolute start-1 top-1 rounded bg-swift-gold px-1.5 py-0.5 text-[10px] font-bold text-swift-black">
+//                     ★
+//                   </span>
+//                 )}
+//               </div>
+//             ))}
+
+//             <label className="flex h-24 w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-swift-border text-swift-muted hover:border-swift-gold hover:text-swift-gold">
+//               {uploading ? (
+//                 <Loader2
+//                   size={18}
+//                   className="animate-spin"
+//                 />
+//               ) : (
+//                 <Upload size={18} />
+//               )}
+
+//               <span className="text-[10px]">
+//                 {t.admin.uploadImages}
+//               </span>
+
+//               <input
+//                 type="file"
+//                 accept="image/*"
+//                 multiple
+//                 className="hidden"
+//                 onChange={(e) =>
+//                   handleImageUpload(
+//                     e.target.files
+//                   )
+//                 }
+//                 disabled={uploading}
+//               />
+//             </label>
+//           </div>
+//         </section>
+
+//         {/* =========================
+//             Vehicle Information
+//         ========================== */}
+//         <section className="surface-card grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+//           {/* Brand */}
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicles.brand} *
+//             </label>
+
+//             <input
+//               className={inputClass}
+//               value={form.brand}
+//               onChange={(e) =>
+//                 update("brand", e.target.value)
+//               }
+//             />
+
+//             {errors.brand && (
+//               <p className="mt-1 text-xs text-red-400">
+//                 {errors.brand}
+//               </p>
+//             )}
+//           </div>
+
+//           {/* Model */}
+//           <div>
+//             <label className={labelClass}>
+//               Model *
+//             </label>
+
+//             <input
+//               className={inputClass}
+//               value={form.model}
+//               onChange={(e) =>
+//                 update("model", e.target.value)
+//               }
+//             />
+
+//             {errors.model && (
+//               <p className="mt-1 text-xs text-red-400">
+//                 {errors.model}
+//               </p>
+//             )}
+//           </div>
+
+//           {/* Trim */}
+//           <div>
+//             <label className={labelClass}>
+//               Trim
+//             </label>
+
+//             <input
+//               className={inputClass}
+//               value={form.trim}
+//               onChange={(e) =>
+//                 update("trim", e.target.value)
+//               }
+//             />
+//           </div>
+
+//           {/* Year */}
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicle.year} *
+//             </label>
+
+//             <input
+//               type="number"
+//               className={inputClass}
+//               value={form.year}
+//               onChange={(e) =>
+//                 update(
+//                   "year",
+//                   Number(e.target.value)
+//                 )
+//               }
+//             />
+
+//             {errors.year && (
+//               <p className="mt-1 text-xs text-red-400">
+//                 {errors.year}
+//               </p>
+//             )}
+//           </div>
+
+//           {/* Price */}
+//           <div>
+//             <label className={labelClass}>
+//               Price (AED) *
+//             </label>
+
+//             <input
+//               type="number"
+//               min={0}
+//               className={inputClass}
+//               value={form.price_aed}
+//               onChange={(e) =>
+//                 update(
+//                   "price_aed",
+//                   Number(e.target.value)
+//                 )
+//               }
+//             />
+
+//             {errors.price_aed && (
+//               <p className="mt-1 text-xs text-red-400">
+//                 {errors.price_aed}
+//               </p>
+//             )}
+//           </div>
+
+//           {/* Mileage */}
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicle.mileage}
+//             </label>
+
+//             <input
+//               type="number"
+//               min={0}
+//               className={inputClass}
+//               value={form.mileage}
+//               onChange={(e) =>
+//                 update(
+//                   "mileage",
+//                   e.target.value
+//                 )
+//               }
+//             />
+//           </div>
+
+//           {/* Engine Size */}
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicle.engineSize}
+//             </label>
+
+//             <input
+//               className={inputClass}
+//               value={form.engine_size}
+//               onChange={(e) =>
+//                 update(
+//                   "engine_size",
+//                   e.target.value
+//                 )
+//               }
+//             />
+//           </div>
+
+//           {/* Color */}
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicle.color}
+//             </label>
+
+//             <input
+//               className={inputClass}
+//               value={form.color}
+//               onChange={(e) =>
+//                 update(
+//                   "color",
+//                   e.target.value
+//                 )
+//               }
+//             />
+//           </div>
+
+//           {/* Regional Specification */}
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicle.spec}
+//             </label>
+
+//             <input
+//               className={inputClass}
+//               value={
+//                 form.regional_specification
+//               }
+//               onChange={(e) =>
+//                 update(
+//                   "regional_specification",
+//                   e.target.value
+//                 )
+//               }
+//             />
+//           </div>
+//         </section>
+
+//         {/* =========================
+//             Persian Description
+//         ========================== */}
+//         <section className="surface-card space-y-4 p-6">
+//           <div>
+//             <label className={labelClass}>
+//               {t.vehicle.descriptionFa}
+//             </label>
+
+//             <textarea
+//               dir="rtl"
+//               rows={4}
+//               className={inputClass}
+//               value={form.description_fa}
+//               onChange={(e) =>
+//                 update(
+//                   "description_fa",
+//                   e.target.value
+//                 )
+//               }
+//             />
+//           </div>
+//         </section>
+
+//         {/* =========================
+//             Status
+//         ========================== */}
+//         <section className="surface-card flex flex-wrap gap-6 p-6">
+//           {(
+//             [
+//               [
+//                 "is_available",
+//                 t.admin.markAvailable,
+//               ],
+//               [
+//                 "is_featured",
+//                 t.admin.feature,
+//               ],
+//               [
+//                 "is_published",
+//                 t.admin.publish,
+//               ],
+//             ] as const
+//           ).map(([key, label]) => (
+//             <label
+//               key={key}
+//               className="flex items-center gap-2 text-sm text-swift-warm/90"
+//             >
+//               <input
+//                 type="checkbox"
+//                 checked={form[key]}
+//                 onChange={(e) =>
+//                   update(
+//                     key,
+//                     e.target.checked
+//                   )
+//                 }
+//                 className="h-4 w-4 rounded border-swift-border accent-swift-gold"
+//               />
+
+//               {label}
+//             </label>
+//           ))}
+//         </section>
+
+//         {/* =========================
+//             Actions
+//         ========================== */}
+//         <div className="flex justify-end gap-3">
+//           <button
+//             type="button"
+//             onClick={() =>
+//               navigate("/admin/vehicles")
+//             }
+//             className="btn-outline"
+//             disabled={submitting}
+//           >
+//             {t.common.cancel}
+//           </button>
+
+//           <button
+//             type="submit"
+//             className="btn-gold"
+//             disabled={submitting}
+//           >
+//             {submitting
+//               ? t.common.loading
+//               : t.common.save}
+//           </button>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Star, Trash2, Upload, Loader2 } from "lucide-react";
@@ -1193,6 +1928,7 @@ import type { VehicleImage } from "@/types/vehicle";
 import type { Json } from "@/types/database";
 
 const VEHICLE_BUCKET = "vehicle-images";
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
 
 const emptyForm = {
   brand: "",
@@ -1201,10 +1937,16 @@ const emptyForm = {
   year: new Date().getFullYear(),
   price_aed: 0,
   mileage: "",
+  fuel_type: "",
+  transmission: "",
+  engine: "",
   engine_size: "",
+  body_type: "",
   color: "",
   regional_specification: "",
+  country: "",
   description_fa: "",
+  description_en: "",
   is_available: true,
   is_featured: false,
   is_published: true,
@@ -1214,7 +1956,7 @@ type FormState = typeof emptyForm;
 
 export function VehicleForm() {
   const { id } = useParams<{ id: string }>();
-  const isEdit = !!id;
+  const isEdit = Boolean(id);
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -1228,6 +1970,7 @@ export function VehicleForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [removingImages, setRemovingImages] = useState<string[]>([]);
 
   const [banner, setBanner] = useState<{
     type: "success" | "error";
@@ -1235,26 +1978,32 @@ export function VehicleForm() {
   } | null>(null);
 
   useEffect(() => {
-    if (existing) {
-      setForm({
-        brand: existing.brand,
-        model: existing.model,
-        trim: existing.trim ?? "",
-        year: existing.year,
-        price_aed: existing.price_aed,
-        mileage: existing.mileage?.toString() ?? "",
-        engine_size: existing.engine_size ?? "",
-        color: existing.color ?? "",
-        regional_specification:
-          existing.regional_specification ?? "",
-        description_fa: existing.description_fa ?? "",
-        is_available: existing.is_available,
-        is_featured: existing.is_featured,
-        is_published: existing.is_published,
-      });
+    if (!existing) return;
 
-      setImages(existing.images ?? []);
-    }
+    setForm({
+      brand: existing.brand,
+      model: existing.model,
+      trim: existing.trim ?? "",
+      year: existing.year,
+      price_aed: existing.price_aed,
+      mileage: existing.mileage?.toString() ?? "",
+      fuel_type: existing.fuel_type ?? "",
+      transmission: existing.transmission ?? "",
+      engine: existing.engine ?? "",
+      engine_size: existing.engine_size ?? "",
+      body_type: existing.body_type ?? "",
+      color: existing.color ?? "",
+      regional_specification:
+        existing.regional_specification ?? "",
+      country: existing.country ?? "",
+      description_fa: existing.description_fa ?? "",
+      description_en: existing.description_en ?? "",
+      is_available: existing.is_available,
+      is_featured: existing.is_featured,
+      is_published: existing.is_published,
+    });
+
+    setImages(existing.images ?? []);
   }, [existing]);
 
   const update = <K extends keyof FormState>(
@@ -1267,9 +2016,7 @@ export function VehicleForm() {
     }));
   };
 
-  const handleImageUpload = async (
-    files: FileList | null
-  ) => {
+  const handleImageUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     setUploading(true);
@@ -1277,121 +2024,175 @@ export function VehicleForm() {
 
     const uploaded: VehicleImage[] = [];
 
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) {
-        continue;
-      }
+    try {
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) {
+          setBanner({
+            type: "error",
+            message: `Invalid image file: ${file.name}`,
+          });
+          continue;
+        }
 
-      if (file.size > 8 * 1024 * 1024) {
-        setBanner({
-          type: "error",
-          message: "Image size must be less than 8MB.",
+        if (file.size > MAX_IMAGE_SIZE) {
+          setBanner({
+            type: "error",
+            message: `Image size must be less than 8MB: ${file.name}`,
+          });
+          continue;
+        }
+
+        const extension = file.name.split(".").pop();
+        const path = `${crypto.randomUUID()}.${extension}`;
+
+        const { error } = await supabase.storage
+          .from(VEHICLE_BUCKET)
+          .upload(path, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (error) {
+          console.error("Image upload failed:", error);
+
+          setBanner({
+            type: "error",
+            message: error.message,
+          });
+
+          continue;
+        }
+
+        const { data: publicUrl } = supabase.storage
+          .from(VEHICLE_BUCKET)
+          .getPublicUrl(path);
+
+        uploaded.push({
+          url: publicUrl.publicUrl,
+          path,
+          isPrimary: false,
+          sortOrder: images.length + uploaded.length,
         });
-        continue;
       }
 
-      const ext = file.name.split(".").pop();
+      setImages((prev) => {
+        const next = [...prev, ...uploaded];
 
-      const path = `${crypto.randomUUID()}.${ext}`;
+        if (
+          next.length > 0 &&
+          !next.some((image) => image.isPrimary)
+        ) {
+          return next.map((image, index) => ({
+            ...image,
+            isPrimary: index === 0,
+          }));
+        }
 
+        return next;
+      });
+
+      if (uploaded.length > 0) {
+        setBanner({
+          type: "success",
+          message: `${uploaded.length} image(s) uploaded successfully.`,
+        });
+      }
+    } catch (error) {
+      console.error("Unexpected image upload error:", error);
+
+      setBanner({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while uploading images.",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = async (path: string) => {
+    if (removingImages.includes(path)) return;
+
+    setRemovingImages((prev) => [...prev, path]);
+    setBanner(null);
+
+    try {
       const { error } = await supabase.storage
         .from(VEHICLE_BUCKET)
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        .remove([path]);
 
       if (error) {
-        console.error("Image upload failed:", error);
+        console.error("Image removal failed:", error);
 
         setBanner({
           type: "error",
           message: error.message,
         });
 
-        continue;
+        return;
       }
 
-      const { data: publicUrl } = supabase.storage
-        .from(VEHICLE_BUCKET)
-        .getPublicUrl(path);
+      setImages((prev) => {
+        const next = prev.filter((image) => image.path !== path);
 
-      uploaded.push({
-        url: publicUrl.publicUrl,
-        path,
-        isPrimary: false,
-        sortOrder:
-          images.length + uploaded.length,
+        if (
+          next.length > 0 &&
+          !next.some((image) => image.isPrimary)
+        ) {
+          return next.map((image, index) => ({
+            ...image,
+            isPrimary: index === 0,
+          }));
+        }
+
+        return next;
       });
-    }
-
-    setImages((prev) => {
-      const next = [...prev, ...uploaded];
-
-      if (
-        !next.some((img) => img.isPrimary) &&
-        next.length > 0
-      ) {
-        next[0].isPrimary = true;
-      }
-
-      return next;
-    });
-
-    setUploading(false);
-  };
-
-  const removeImage = async (path: string) => {
-    const { error } = await supabase.storage
-      .from(VEHICLE_BUCKET)
-      .remove([path]);
-
-    if (error) {
-      console.error("Image removal failed:", error);
+    } catch (error) {
+      console.error("Unexpected image removal error:", error);
 
       setBanner({
         type: "error",
-        message: error.message,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to remove image.",
       });
-
-      return;
-    }
-
-    setImages((prev) => {
-      const next = prev.filter(
-        (img) => img.path !== path
+    } finally {
+      setRemovingImages((prev) =>
+        prev.filter((item) => item !== path)
       );
-
-      if (
-        next.length > 0 &&
-        !next.some((img) => img.isPrimary)
-      ) {
-        next[0].isPrimary = true;
-      }
-
-      return next;
-    });
+    }
   };
 
   const setPrimary = (path: string) => {
     setImages((prev) =>
-      prev.map((img) => ({
-        ...img,
-        isPrimary: img.path === path,
+      prev.map((image) => ({
+        ...image,
+        isPrimary: image.path === path,
       }))
     );
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBanner(null);
+
+    if (uploading || removingImages.length > 0) {
+      setBanner({
+        type: "error",
+        message: "Please wait until image operations finish.",
+      });
+      return;
+    }
 
     const parsed = vehicleFormSchema.safeParse({
       ...form,
       year: Number(form.year),
       price_aed: Number(form.price_aed),
       mileage:
-        form.mileage === ""
+        form.mileage.trim() === ""
           ? null
           : Number(form.mileage),
     });
@@ -1400,89 +2201,100 @@ export function VehicleForm() {
       const fieldErrors: Record<string, string> = {};
 
       for (const issue of parsed.error.issues) {
-        fieldErrors[String(issue.path[0])] =
-          t.admin.requiredField;
+        const field = String(issue.path[0]);
+
+        fieldErrors[field] = t.admin.requiredField;
       }
 
       setErrors(fieldErrors);
+
+      setBanner({
+        type: "error",
+        message: t.admin.requiredField,
+      });
+
       return;
     }
 
     setErrors({});
     setSubmitting(true);
 
-    const jsonImages: Json = images.map((image) => ({
-      url: image.url,
-      path: image.path,
-      isPrimary: image.isPrimary,
-      sortOrder: image.sortOrder,
-    }));
+    try {
+      const jsonImages: Json = images.map((image) => ({
+        url: image.url,
+        path: image.path,
+        isPrimary: image.isPrimary,
+        sortOrder: image.sortOrder,
+      }));
 
-    const payload = {
-      ...parsed.data,
+      const payload = {
+        ...parsed.data,
 
-      trim: parsed.data.trim || null,
+        brand: form.brand.trim(),
+        model: form.model.trim(),
 
-      engine_size:
-        parsed.data.engine_size || null,
+        trim: form.trim.trim() || null,
 
-      color:
-        parsed.data.color || null,
+        fuel_type: form.fuel_type.trim() || null,
+        transmission: form.transmission.trim() || null,
+        engine: form.engine.trim() || null,
+        engine_size: form.engine_size.trim() || null,
+        body_type: form.body_type.trim() || null,
 
-      regional_specification:
-        parsed.data.regional_specification || null,
+        color: form.color.trim() || null,
 
-      description_fa:
-        parsed.data.description_fa || null,
+        regional_specification:
+          form.regional_specification.trim() || null,
 
-      images: jsonImages,
+        country: form.country.trim() || null,
 
-      // These fields are intentionally kept
-      // out of the admin form but stored as null.
-      fuel_type: null,
-      transmission: null,
-      engine: null,
-      body_type: null,
-      country: null,
-      description_en: null,
-    };
+        description_fa: form.description_fa.trim() || null,
+        description_en: form.description_en.trim() || null,
 
-    const result = isEdit
-      ? await supabase
-          .from("vehicles")
-          .update(payload)
-          .eq("id", id)
-      : await supabase
-          .from("vehicles")
-          .insert(payload);
+        images: jsonImages,
+      };
 
-    setSubmitting(false);
+      const result = isEdit
+        ? await supabase
+            .from("vehicles")
+            .update(payload)
+            .eq("id", id!)
+        : await supabase
+            .from("vehicles")
+            .insert(payload);
 
-    if (result.error) {
-      console.error(
-        "Vehicle save failed:",
-        result.error
-      );
+      if (result.error) {
+        console.error("Vehicle save failed:", result.error);
+
+        setBanner({
+          type: "error",
+          message: result.error.message || t.admin.saveError,
+        });
+
+        return;
+      }
+
+      setBanner({
+        type: "success",
+        message: t.admin.saveSuccess,
+      });
+
+      window.setTimeout(() => {
+        navigate("/admin/vehicles");
+      }, 600);
+    } catch (error) {
+      console.error("Unexpected vehicle save error:", error);
 
       setBanner({
         type: "error",
         message:
-          result.error.message ||
-          t.admin.saveError,
+          error instanceof Error
+            ? error.message
+            : t.admin.saveError,
       });
-
-      return;
+    } finally {
+      setSubmitting(false);
     }
-
-    setBanner({
-      type: "success",
-      message: t.admin.saveSuccess,
-    });
-
-    setTimeout(
-      () => navigate("/admin/vehicles"),
-      600
-    );
   };
 
   if (isEdit && loadingExisting) {
@@ -1508,6 +2320,7 @@ export function VehicleForm() {
       {banner && (
         <div
           role="status"
+          aria-live="polite"
           className={`mb-4 rounded-md px-4 py-3 text-sm ${
             banner.type === "success"
               ? "bg-green-500/10 text-green-400"
@@ -1518,81 +2331,80 @@ export function VehicleForm() {
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-8"
-      >
-        {/* =========================
-            Images
-        ========================== */}
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Vehicle Images */}
+
         <section className="surface-card p-6">
           <h2 className="section-label mb-4">
             {t.admin.images}
           </h2>
 
           <div className="flex flex-wrap gap-3">
-            {images.map((img) => (
-              <div
-                key={img.path}
-                className="group relative h-24 w-32 overflow-hidden rounded-md border border-swift-border"
-              >
-                <img
-                  src={img.url}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+            {images.map((img) => {
+              const isRemoving = removingImages.includes(img.path);
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPrimary(img.path)
-                    }
-                    className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] ${
-                      img.isPrimary
-                        ? "bg-swift-gold text-swift-black"
-                        : "bg-white/10 text-white"
-                    }`}
-                  >
-                    <Star
-                      size={10}
-                      fill={
+              return (
+                <div
+                  key={img.path}
+                  className="group relative h-24 w-32 overflow-hidden rounded-md border border-swift-border"
+                >
+                  <img
+                    src={img.url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => setPrimary(img.path)}
+                      disabled={isRemoving}
+                      aria-label={`${t.admin.setPrimary}: ${img.path}`}
+                      className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] ${
                         img.isPrimary
-                          ? "currentColor"
-                          : "none"
-                      }
-                    />
+                          ? "bg-swift-gold text-swift-black"
+                          : "bg-white/10 text-white"
+                      }`}
+                    >
+                      <Star
+                        size={10}
+                        fill={
+                          img.isPrimary ? "currentColor" : "none"
+                        }
+                      />
+                      {t.admin.setPrimary}
+                    </button>
 
-                    {t.admin.setPrimary}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(img.path)}
+                      disabled={isRemoving}
+                      className="flex items-center gap-1 rounded bg-red-500/80 px-2 py-1 text-[10px] text-white disabled:opacity-50"
+                    >
+                      {isRemoving ? (
+                        <Loader2
+                          size={10}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <Trash2 size={10} />
+                      )}
+                      {t.admin.removeImage}
+                    </button>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeImage(img.path)
-                    }
-                    className="flex items-center gap-1 rounded bg-red-500/80 px-2 py-1 text-[10px] text-white"
-                  >
-                    <Trash2 size={10} />
-
-                    {t.admin.removeImage}
-                  </button>
+                  {img.isPrimary && (
+                    <span className="absolute start-1 top-1 rounded bg-swift-gold px-1.5 py-0.5 text-[10px] font-bold text-swift-black">
+                      ★
+                    </span>
+                  )}
                 </div>
-
-                {img.isPrimary && (
-                  <span className="absolute start-1 top-1 rounded bg-swift-gold px-1.5 py-0.5 text-[10px] font-bold text-swift-black">
-                    ★
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
 
             <label className="flex h-24 w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-swift-border text-swift-muted hover:border-swift-gold hover:text-swift-gold">
               {uploading ? (
-                <Loader2
-                  size={18}
-                  className="animate-spin"
-                />
+                <Loader2 size={18} className="animate-spin" />
               ) : (
                 <Upload size={18} />
               )}
@@ -1606,35 +2418,29 @@ export function VehicleForm() {
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) =>
-                  handleImageUpload(
-                    e.target.files
-                  )
-                }
-                disabled={uploading}
+                onChange={(e) => {
+                  void handleImageUpload(e.target.files);
+                  e.target.value = "";
+                }}
+                disabled={uploading || submitting}
               />
             </label>
           </div>
         </section>
 
-        {/* =========================
-            Vehicle Information
-        ========================== */}
+        {/* Vehicle Information */}
+
         <section className="surface-card grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
-          {/* Brand */}
           <div>
             <label className={labelClass}>
               {t.vehicles.brand} *
             </label>
-
             <input
+              required
               className={inputClass}
               value={form.brand}
-              onChange={(e) =>
-                update("brand", e.target.value)
-              }
+              onChange={(e) => update("brand", e.target.value)}
             />
-
             {errors.brand && (
               <p className="mt-1 text-xs text-red-400">
                 {errors.brand}
@@ -1642,20 +2448,14 @@ export function VehicleForm() {
             )}
           </div>
 
-          {/* Model */}
           <div>
-            <label className={labelClass}>
-              Model *
-            </label>
-
+            <label className={labelClass}>Model *</label>
             <input
+              required
               className={inputClass}
               value={form.model}
-              onChange={(e) =>
-                update("model", e.target.value)
-              }
+              onChange={(e) => update("model", e.target.value)}
             />
-
             {errors.model && (
               <p className="mt-1 text-xs text-red-400">
                 {errors.model}
@@ -1663,39 +2463,28 @@ export function VehicleForm() {
             )}
           </div>
 
-          {/* Trim */}
           <div>
-            <label className={labelClass}>
-              Trim
-            </label>
-
+            <label className={labelClass}>Trim</label>
             <input
               className={inputClass}
               value={form.trim}
-              onChange={(e) =>
-                update("trim", e.target.value)
-              }
+              onChange={(e) => update("trim", e.target.value)}
             />
           </div>
 
-          {/* Year */}
           <div>
             <label className={labelClass}>
               {t.vehicle.year} *
             </label>
-
             <input
               type="number"
+              required
               className={inputClass}
               value={form.year}
               onChange={(e) =>
-                update(
-                  "year",
-                  Number(e.target.value)
-                )
+                update("year", Number(e.target.value))
               }
             />
-
             {errors.year && (
               <p className="mt-1 text-xs text-red-400">
                 {errors.year}
@@ -1703,25 +2492,18 @@ export function VehicleForm() {
             )}
           </div>
 
-          {/* Price */}
           <div>
-            <label className={labelClass}>
-              Price (AED) *
-            </label>
-
+            <label className={labelClass}>Price (AED) *</label>
             <input
               type="number"
               min={0}
+              required
               className={inputClass}
               value={form.price_aed}
               onChange={(e) =>
-                update(
-                  "price_aed",
-                  Number(e.target.value)
-                )
+                update("price_aed", Number(e.target.value))
               }
             />
-
             {errors.price_aed && (
               <p className="mt-1 text-xs text-red-400">
                 {errors.price_aed}
@@ -1729,125 +2511,156 @@ export function VehicleForm() {
             )}
           </div>
 
-          {/* Mileage */}
           <div>
             <label className={labelClass}>
               {t.vehicle.mileage}
             </label>
-
             <input
               type="number"
               min={0}
               className={inputClass}
               value={form.mileage}
+              onChange={(e) => update("mileage", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>{t.vehicle.fuel}</label>
+            <input
+              className={inputClass}
+              value={form.fuel_type}
+              onChange={(e) => update("fuel_type", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              {t.vehicle.transmission}
+            </label>
+            <input
+              className={inputClass}
+              value={form.transmission}
               onChange={(e) =>
-                update(
-                  "mileage",
-                  e.target.value
-                )
+                update("transmission", e.target.value)
               }
             />
           </div>
 
-          {/* Engine Size */}
+          <div>
+            <label className={labelClass}>
+              {t.vehicle.engine}
+            </label>
+            <input
+              className={inputClass}
+              value={form.engine}
+              onChange={(e) => update("engine", e.target.value)}
+            />
+          </div>
+
           <div>
             <label className={labelClass}>
               {t.vehicle.engineSize}
             </label>
-
             <input
               className={inputClass}
               value={form.engine_size}
               onChange={(e) =>
-                update(
-                  "engine_size",
-                  e.target.value
-                )
+                update("engine_size", e.target.value)
               }
             />
           </div>
 
-          {/* Color */}
+          <div>
+            <label className={labelClass}>
+              {t.vehicle.bodyType}
+            </label>
+            <input
+              className={inputClass}
+              value={form.body_type}
+              onChange={(e) =>
+                update("body_type", e.target.value)
+              }
+            />
+          </div>
+
           <div>
             <label className={labelClass}>
               {t.vehicle.color}
             </label>
-
             <input
               className={inputClass}
               value={form.color}
-              onChange={(e) =>
-                update(
-                  "color",
-                  e.target.value
-                )
-              }
+              onChange={(e) => update("color", e.target.value)}
             />
           </div>
 
-          {/* Regional Specification */}
           <div>
             <label className={labelClass}>
               {t.vehicle.spec}
             </label>
-
             <input
               className={inputClass}
-              value={
-                form.regional_specification
-              }
+              value={form.regional_specification}
               onChange={(e) =>
-                update(
-                  "regional_specification",
-                  e.target.value
-                )
+                update("regional_specification", e.target.value)
               }
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              {t.vehicle.country}
+            </label>
+            <input
+              className={inputClass}
+              value={form.country}
+              onChange={(e) => update("country", e.target.value)}
             />
           </div>
         </section>
 
-        {/* =========================
-            Persian Description
-        ========================== */}
+        {/* Vehicle Descriptions */}
+
         <section className="surface-card space-y-4 p-6">
           <div>
             <label className={labelClass}>
               {t.vehicle.descriptionFa}
             </label>
-
             <textarea
               dir="rtl"
               rows={4}
               className={inputClass}
               value={form.description_fa}
               onChange={(e) =>
-                update(
-                  "description_fa",
-                  e.target.value
-                )
+                update("description_fa", e.target.value)
+              }
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              {t.vehicle.descriptionEn}
+            </label>
+            <textarea
+              dir="ltr"
+              rows={4}
+              className={inputClass}
+              value={form.description_en}
+              onChange={(e) =>
+                update("description_en", e.target.value)
               }
             />
           </div>
         </section>
 
-        {/* =========================
-            Status
-        ========================== */}
+        {/* Vehicle Status */}
+
         <section className="surface-card flex flex-wrap gap-6 p-6">
           {(
             [
-              [
-                "is_available",
-                t.admin.markAvailable,
-              ],
-              [
-                "is_featured",
-                t.admin.feature,
-              ],
-              [
-                "is_published",
-                t.admin.publish,
-              ],
+              ["is_available", t.admin.markAvailable],
+              ["is_featured", t.admin.feature],
+              ["is_published", t.admin.publish],
             ] as const
           ).map(([key, label]) => (
             <label
@@ -1858,30 +2671,23 @@ export function VehicleForm() {
                 type="checkbox"
                 checked={form[key]}
                 onChange={(e) =>
-                  update(
-                    key,
-                    e.target.checked
-                  )
+                  update(key, e.target.checked)
                 }
                 className="h-4 w-4 rounded border-swift-border accent-swift-gold"
               />
-
               {label}
             </label>
           ))}
         </section>
 
-        {/* =========================
-            Actions
-        ========================== */}
+        {/* Form Actions */}
+
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            onClick={() =>
-              navigate("/admin/vehicles")
-            }
+            onClick={() => navigate("/admin/vehicles")}
             className="btn-outline"
-            disabled={submitting}
+            disabled={submitting || uploading}
           >
             {t.common.cancel}
           </button>
@@ -1889,11 +2695,13 @@ export function VehicleForm() {
           <button
             type="submit"
             className="btn-gold"
-            disabled={submitting}
+            disabled={
+              submitting ||
+              uploading ||
+              removingImages.length > 0
+            }
           >
-            {submitting
-              ? t.common.loading
-              : t.common.save}
+            {submitting ? t.common.loading : t.common.save}
           </button>
         </div>
       </form>

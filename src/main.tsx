@@ -36,17 +36,70 @@
 
 
 
+// import { StrictMode } from "react";
+// import { createRoot } from "react-dom/client";
+// import { HelmetProvider } from "react-helmet-async";
+// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// import { BrowserRouter } from "react-router-dom";
+// import { LanguageProvider } from "@/i18n/LanguageContext";
+// import { AuthProvider } from "@/hooks/useAuth";
+// import App from "./App";
+// import { initializeGTM } from "./gtm";
+// import "./index.css";
+
+// initializeGTM();
+
+// const queryClient = new QueryClient({
+//   defaultOptions: {
+//     queries: {
+//       staleTime: 30_000,
+//       retry: 1,
+//       refetchOnWindowFocus: false,
+//     },
+//   },
+// });
+
+// createRoot(document.getElementById("root")!).render(
+//   <StrictMode>
+//     <HelmetProvider>
+//       <QueryClientProvider client={queryClient}>
+//         <BrowserRouter>
+//           <LanguageProvider>
+//             <AuthProvider>
+//               <App />
+//             </AuthProvider>
+//           </LanguageProvider>
+//         </BrowserRouter>
+//       </QueryClientProvider>
+//     </HelmetProvider>
+//   </StrictMode>
+// );
+
+
+
+
+
+
+
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
+
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { AuthProvider } from "@/hooks/useAuth";
+
 import App from "./App";
 import { initializeGTM } from "./gtm";
+
 import "./index.css";
 
+// Initialize Google Tag Manager
 initializeGTM();
 
 const queryClient = new QueryClient({
@@ -59,7 +112,13 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById("root")!).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error('Root element "#root" was not found.');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
